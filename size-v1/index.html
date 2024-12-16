@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>尺寸產生器</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #245843;
+            padding: 10px;
+            text-align: center;
+        }
+        th {
+            background-color: #245843;
+            color: white;
+        }
+        input {
+            width: 100%;
+            padding: 5px;
+            box-sizing: border-box;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: #245843;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        #result {
+            background-color: #e9f5f0;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        @media (max-width: 600px) {
+            table {
+                font-size: 14px;
+            }
+            .button-group {
+                flex-direction: column;
+            }
+        }
+        /* Drag and drop styles */
+        .dragging {
+            background-color: #e9f5f0;
+            transform: scale(1.02);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s, background-color 0.2s;
+        }
+        .drag-handle {
+            cursor: move;
+            user-select: none;
+            padding-right: 10px;
+            opacity: 0.5;
+        }
+        .drag-handle::before {
+            content: '☰';
+            display: inline-block;
+        }
+        #notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #245843;
+            color: white;
+            padding: 15px;
+            border-radius: 4px;
+            display: none;
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out, fadeOut 0.5s ease-in 2s forwards;
+        }
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        @keyframes fadeOut {
+            to {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+        }
+        .total-row {
+            font-weight: bold;
+            background-color: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="button-group">
+            <button onclick="addRow()">新增列</button>
+        </div>
+        
+        <table id="sizeTable">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>尺寸</th>
+                    <th>數值</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <tr draggable="true">
+                    <td class="drag-handle"></td>
+                    <td contenteditable="true">XXS</td>
+                    <td contenteditable="true"></td>
+                </tr>
+                <tr draggable="true">
+                    <td class="drag-handle"></td>
+                    <td contenteditable="true">XS</td>
+                    <td contenteditable="true"></td>
+                </tr>
+                <tr draggable="true">
+                    <td class="drag-handle"></td>
+                    <td contenteditable="true">S</td>
+                    <td contenteditable="true"></td>
+                </tr>
+                <tr draggable="true">
+                    <td class="drag-handle"></td>
+                    <td contenteditable="true">M</td>
+                    <td contenteditable="true"></td>
+                </tr>
+                <tr draggable="true">
+                    <td class="drag-handle"></td>
+                    <td contenteditable="true">L</td>
+                    <td contenteditable="true"></td>
+                </tr>
+                <tr draggable="true">
+                    <td class="drag-handle"></td>
+                    <td contenteditable="true">XL</td>
+                    <td contenteditable="true"></td>
+                </tr>
+                <tr draggable="true">
+                    <td class="drag-handle"></td>
+                    <td contenteditable="true">2L</td>
+                    <td contenteditable="true"></td>
+                </tr>
+                <tr draggable="true">
+                    <td class="drag-handle"></td>
+                    <td contenteditable="true">3L</td>
+                    <td contenteditable="true"></td>
+                </tr>
+                <tr draggable="true">
+                    <td class="drag-handle"></td>
+                    <td contenteditable="true">4L</td>
+                    <td contenteditable="true"></td>
+                </tr>
+                <tr draggable="true">
+                    <td class="drag-handle"></td>
+                    <td contenteditable="true">5L</td>
+                    <td contenteditable="true"></td>
+                </tr>
+                <tr draggable="true">
+                    <td class="drag-handle"></td>
+                    <td contenteditable="true">6L</td>
+                    <td contenteditable="true"></td>
+                </tr>
+                <tr class="total-row">
+                    <td></td>
+                    <td>總數量</td>
+                    <td id="totalQuantity">0</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div id="result">
+            <span id="resultText"></span>
+            <button onclick="copyResult()">複製</button>
+        </div>
+    </div>
+
+    <div id="notification"></div>
+
+    <script>
+        // Keyboard Navigation and Enter Key Handling
+        document.getElementById('tableBody').addEventListener('keydown', function(e) {
+            if (e.target.contentEditable === 'true') {
+                // Prevent default Enter behavior (new line)
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    
+                    // Find current row and cell
+                    const currentRow = e.target.closest('tr');
+                    const currentCell = e.target.closest('td');
+                    
+                    // Always move to the next value cell
+                    if (currentCell === currentRow.cells[1]) {
+                        currentRow.cells[2].focus();
+                    } else {
+                        const nextRow = currentRow.nextElementSibling || addRow();
+                        // Target the value cell of the next row
+                        nextRow.cells[2].focus();
+                    }
+                }
+                
+                // Arrow key navigation
+                if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    const rows = Array.from(document.querySelectorAll('#tableBody tr:not(.total-row)'));
+                    const currentRow = e.target.closest('tr');
+                    const currentIndex = rows.indexOf(currentRow);
+                    const currentCellIndex = Array.from(currentRow.cells).indexOf(e.target.closest('td'));
+                    
+                    let targetRow;
+                    if (e.key === 'ArrowUp' && currentIndex > 0) {
+                        targetRow = rows[currentIndex - 1];
+                    } else if (e.key === 'ArrowDown' && currentIndex < rows.length - 1) {
+                        targetRow = rows[currentIndex + 1];
+                    }
+                    
+                    if (targetRow) {
+                        targetRow.cells[currentCellIndex].focus();
+                    }
+                }
+            }
+        });
+
+        // Drag and Drop Sorting
+        const tbody = document.getElementById('tableBody');
+        let draggedRow = null;
+
+        tbody.addEventListener('dragstart', (e) => {
+            if (e.target.tagName === 'TR') {
+                draggedRow = e.target;
+                e.target.classList.add('dragging');
+            }
+        });
+
+        tbody.addEventListener('dragend', (e) => {
+            if (e.target.tagName === 'TR') {
+                e.target.classList.remove('dragging');
+                draggedRow = null;
+                updateResult();
+            }
+        });
+
+        tbody.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            const targetRow = e.target.closest('tr');
+            if (targetRow && targetRow !== draggedRow && !targetRow.classList.contains('total-row')) {
+                const rect = targetRow.getBoundingClientRect();
+                const offset = rect.height / 2;
+                if (e.clientY - rect.top < offset) {
+                    targetRow.parentNode.insertBefore(draggedRow, targetRow);
+                } else {
+                    targetRow.parentNode.insertBefore(draggedRow, targetRow.nextSibling);
+                }
+            }
+        });
+
+        function updateResult() {
+            const rows = document.querySelectorAll('#tableBody tr:not(.total-row)');
+            const validRows = Array.from(rows)
+                .filter(row => {
+                    const size = row.cells[1].innerText.trim();
+                    const value = row.cells[2].innerText.trim();
+                    return size && value && !isNaN(value);
+                });
+
+            const formattedResults = validRows
+                .map(row => `${row.cells[1].innerText.trim()}─${row.cells[2].innerText.trim()}`)
+                .join('　　');
+
+            // Calculate total quantity
+            const totalQuantity = validRows.reduce((sum, row) => {
+                const value = parseFloat(row.cells[2].innerText.trim()) || 0;
+                return sum + value;
+            }, 0);
+
+            document.getElementById('resultText').innerText = formattedResults;
+            document.getElementById('totalQuantity').innerText = totalQuantity.toFixed(0);
+        }
+
+        function addRow() {
+            const tableBody = document.getElementById('tableBody');
+            const totalRow = tableBody.lastElementChild;
+            const newRow = tableBody.insertBefore(document.createElement('tr'), totalRow);
+            newRow.draggable = true;
+            
+            const handleCell = newRow.insertCell(0);
+            const sizeCell = newRow.insertCell(1);
+            const valueCell = newRow.insertCell(2);
+            
+            handleCell.classList.add('drag-handle');
+            sizeCell.contentEditable = 'true';
+            valueCell.contentEditable = 'true';
+            
+            return newRow;
+        }
+
+        function copyResult() {
+            const resultText = document.getElementById('resultText').innerText;
+            navigator.clipboard.writeText(resultText).then(() => {
+                showNotification('已複製結果');
+            });
+        }
+
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.style.display = 'block';
+            
+            // Automatically hide after animation
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 2500);
+        }
+
+        // Add event listeners for real-time updates
+        document.getElementById('tableBody').addEventListener('input', updateResult);
+    </script>
+</body>
+</html>
