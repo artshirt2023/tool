@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>尺寸表輸入工具</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
+    <style>
+        body { background-color: #f8f9fa; }
+        .container { max-width: 600px; margin: 40px auto; background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
+        .drag-handle { cursor: grab; }
+        .highlight { background-color: #e0f2f1; }
+        .sortable-ghost { opacity: 0.5; }
+        .btn-copy { background-color: #245843; color: white; }
+        table { width: 100%; }
+        .btn-group { display: flex; justify-content: space-between; }
+        .copy-toast { position: fixed; bottom: 10px; right: 10px; background: #245843; color: white; padding: 8px 12px; border-radius: 5px; display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h4 class="text-center">尺寸表輸入工具</h4>
+        <div class="btn-group mb-2">
+            <button class="btn btn-success" id="addRow">新增尺寸</button>
+            <button class="btn btn-danger" id="resetTable">清空</button>
+        </div>
+        <table class="table table-bordered text-center" id="sizeTable">
+            <thead>
+                <tr>
+                    <th>排序</th>
+                    <th>尺寸</th>
+                    <th>數量</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+            </tbody>
+        </table>
+        <div class="mt-3 p-2 bg-light text-center" id="outputText"></div>
+        <button class="btn btn-copy w-100" id="copyText">複製</button>
+        <div class="copy-toast" id="copyToast">已複製！</div>
+    </div>
+    <script>
+        $(document).ready(function() {
+            const sizes = ["XXS", "XS", "S", "M", "L", "XL", "2L", "3L", "4L", "5L", "6L"];
+            function populateTable() {
+                $("#tableBody").empty();
+                sizes.forEach(size => {
+                    $("#tableBody").append(`
+                        <tr class="size-row">
+                            <td class="drag-handle">☰</td>
+                            <td contenteditable="true" class="size-name">${size}</td>
+                            <td contenteditable="true" class="size-quantity"></td>
+                        </tr>
+                    `);
+                });
+                updateOutput();
+            }
+            populateTable();
+            
+            const tableBody = document.getElementById("tableBody");
+            new Sortable(tableBody, {
+                handle: ".drag-handle",
+                animation: 150,
+                ghostClass: "sortable-ghost",
+                onEnd: updateOutput
+            });
+            
+            function updateOutput() {
+                let text = "";
+                $(".size-row").each(function() {
+                    let size = $(this).find(".size-name").text().trim();
+                    let quantity = $(this).find(".size-quantity").text().trim();
+                    if (quantity !== "") {
+                        text += `${size}─${quantity}　`;
+                    }
+                });
+                $("#outputText").text(text.trim());
+            }
+            
+            $(document).on("input", ".size-quantity, .size-name", updateOutput);
+            
+            $(document).on("keydown", "td", function(e) {
+                let $current = $(this);
+                let $next = $current.closest("tr").next().find(".size-quantity");
+                let $prev = $current.closest("tr").prev().find(".size-quantity");
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    $next.focus();
+                } else if (e.key === "ArrowDown") {
+                    $next.focus();
+                } else if (e.key === "ArrowUp") {
+                    $prev.focus();
+                }
+            });
+            
+            $("#addRow").click(function() {
+                $("#tableBody").append(`
+                    <tr class="size-row">
+                        <td class="drag-handle">☰</td>
+                        <td contenteditable="true" class="size-name">新尺寸</td>
+                        <td contenteditable="true" class="size-quantity"></td>
+                    </tr>
+                `);
+                updateOutput();
+            });
+            
+            $("#resetTable").click(function() {
+                if (confirm("是否確認刪除？尺寸數量會全部清空")) {
+                    populateTable();
+                }
+            });
+            
+            $("#copyText").click(function() {
+                navigator.clipboard.writeText($("#outputText").text()).then(() => {
+                    $("#copyToast").fadeIn().delay(1500).fadeOut();
+                });
+            });
+        });
+    </script>
+</body>
+</html>

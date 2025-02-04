@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>開啟純內容視窗</title>
+    <script>
+        function openPopup() {
+            let popup = window.open(
+                "popup.html",  // 這是要開啟的 HTML 頁面
+                "popupWindow", // 視窗名稱
+                "width=400,height=300,toolbar=no,menubar=no,location=no,status=no,scrollbars=no,resizable=no"
+            );
+        }
+    </script>
+</head>
+<body>
+    <button onclick="openPopup()">開啟小視窗</button>
+</body>
+</html>
