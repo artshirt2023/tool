@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>檔案重命名工具</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        body {
+            background-color: #f5f5f5;
+        }
+        .container {
+            margin-top: 50px;
+        }
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 14px;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h3 class="text-center mb-4">📁 掃描檔重新命名工具</h3>
+        <!-- 使用說明區塊 -->
+        <div class="card p-4 mb-4">
+            <h5>💡使用說明</h5>
+            <ul>
+                <li>本工具僅支援 Ragic 下載附件</li>
+                <li>至 Ragic 客戶合約管理 → 工具 → 下載附件 → 全部資料 → 從此欄位下載：<strong>檔案上傳</strong> → 獨立欄位 對應欄位： 檔案名稱</li>
+                </li>
+                <li>使用問題請聯繫：資訊部 李沛勳</li>
+            </ul>
+        </div>
+
+        <div class="card p-4">
+            <div class="mb-3">
+                <label for="zipFileInput" class="form-label">請將 Ragic 下載的 .zip 檔上傳 ...</label>
+                <input type="file" class="form-control" id="zipFileInput" accept=".zip">
+            </div>
+            <button class="btn btn-primary w-100" id="convertButton" disabled>開始轉換</button>
+        </div>
+
+        <div id="resultMessage" class="alert mt-3 d-none" role="alert"></div>
+    </div>
+
+
+
+    <!-- Copyright 聲明 -->
+    <div class="footer">
+        © 2025 衣的藝術有限公司. All rights reserved.
+    </div>
+
+    <script>
+        const zipInput = document.getElementById('zipFileInput');
+        const convertButton = document.getElementById('convertButton');
+        const resultMessage = document.getElementById('resultMessage');
+
+        let zipFile = null;
+
+        zipInput.addEventListener('change', function() {
+            zipFile = this.files[0];
+            convertButton.disabled = !zipFile;
+        });
+
+        convertButton.addEventListener('click', async () => {
+            if (!zipFile) return;
+            convertButton.disabled = true;
+            showResultMessage('正在處理中，請稍候...', 'info');
+
+            try {
+                const zip = await JSZip.loadAsync(zipFile);
+                const mappingFile = await extractMappingFile(zip);
+                if (!mappingFile) {
+                    throw new Error('無法找到 mappingFile_ 開頭的 .xlsx 檔案');
+                }
+
+                const mapping = await parseMappingFile(mappingFile);
+                await renameFiles(zip, mapping);
+                const newZipBlob = await zip.generateAsync({ type: 'blob' });
+
+                const today = new Date();
+                const formattedDate = today.getFullYear() +
+                    String(today.getMonth() + 1).padStart(2, '0') +
+                    String(today.getDate()).padStart(2, '0');
+
+                saveAs(newZipBlob, `${formattedDate}_掃描合約留存.zip`);
+                showResultMessage('檔案已成功重命名並提供下載', 'success');
+            } catch (error) {
+                showResultMessage(`發生錯誤：${error.message}`, 'danger');
+            } finally {
+                convertButton.disabled = false;
+            }
+        });
+
+        async function extractMappingFile(zip) {
+            for (const filename of Object.keys(zip.files)) {
+                if (filename.startsWith('mappingFile_') && filename.endsWith('.xlsx')) {
+                    return zip.files[filename].async('blob');
+                }
+            }
+            return null;
+        }
+
+        async function parseMappingFile(mappingFileBlob) {
+            const arrayBuffer = await mappingFileBlob.arrayBuffer();
+            const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+            const firstSheetName = workbook.SheetNames[0];
+            const sheet = workbook.Sheets[firstSheetName];
+            const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+            const mapping = {};
+            data.slice(1).forEach(row => {
+                if (row[0] && row[1]) {
+                    const newFileName = row[0].toString().trim();
+                    const originalFileNames = row[1].toString().split(',').map(name => name.trim());
+                    mapping[newFileName] = originalFileNames;
+                }
+            });
+            return mapping;
+        }
+
+        async function renameFiles(zip, mapping) {
+            for (const [newFileName, originalFileNames] of Object.entries(mapping)) {
+                for (let i = 0; i < originalFileNames.length; i++) {
+                    const originalFileName = originalFileNames[i];
+                    const file = zip.files[originalFileName];
+                    if (file) {
+                        const extension = originalFileName.includes('.') ? originalFileName.split('.').pop() : '';
+                        const newFileNameWithExt = extension ? `${newFileName}.${extension}` : newFileName;
+                        const finalName = originalFileNames.length > 1 
+                            ? `${newFileName}-${String(i + 1).padStart(2, '0')}.${extension}`
+                            : newFileNameWithExt;
+                        
+                        zip.file(finalName, await file.async('blob'));
+                        zip.remove(originalFileName);
+                    }
+                }
+            }
+        }
+
+        function showResultMessage(message, type) {
+            resultMessage.textContent = message;
+            resultMessage.className = `alert alert-${type} mt-3`;
+            resultMessage.classList.remove('d-none');
+        }
+    </script>
+</body>
+</html>
