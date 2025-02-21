@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Open Window Example</title>
+</head>
+<body>
+    <button onclick="openWindow()">Open Window Without Toolbar</button>
+
+    <script>
+        function openWindow() {
+            window.open(
+                'https://artshirt2023.github.io/tool/copy/PWA/', // 目标网址
+                'https://artshirt2023.github.io/tool/copy/PWA/',              // 新窗口
+                'width=800,height=600,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=no'
+            );
+        }
+    </script>
+</body>
+</html>

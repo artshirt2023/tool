@@ -69,13 +69,24 @@
             
             function updateOutput() {
                 let text = "";
+                let totalQuantity = 0;
+                let sizeCount = 0;
+                
                 $(".size-row").each(function() {
                     let size = $(this).find(".size-name").text().trim();
                     let quantity = $(this).find(".size-quantity").text().trim();
-                    if (quantity !== "") {
+                    let quantityNum = parseInt(quantity, 10);
+                    if (quantity !== "" && !isNaN(quantityNum)) {
                         text += `${size}─${quantity}　`;
+                        totalQuantity += quantityNum;
+                        sizeCount++;
                     }
                 });
+                
+                if (totalQuantity > 0) {
+                    text += `共${totalQuantity}件、${sizeCount}個尺段`;
+                }
+                
                 $("#outputText").text(text.trim());
             }
             

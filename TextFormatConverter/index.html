@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>格式轉換工具</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/showdown@2.0.3/dist/showdown.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bbcode-parser@1.0.1/bbcode-parser.min.js"></script>
+    <style>
+        html, body { height: 100%; margin: 0; padding: 0; }
+        .container-fluid { height: 100vh; }
+        .row { height: 100%; }
+        .col-md-6 { display: flex; flex-direction: column; height: 100%; }
+        textarea { flex-grow: 1; resize: none; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <h2 class="text-center my-3">格式轉換工具</h2>
+        <div class="row">
+            <div class="col-md-6 p-3">
+                <label for="inputFormat" class="form-label">轉換前格式</label>
+                <select id="inputFormat" class="form-select">
+                    <option value="text">Text</option>
+                    <option value="bbcode">BBCode</option>
+                    <option value="html">HTML</option>
+                    <option value="markdown">Markdown</option>
+                </select>
+                <textarea id="inputText" class="form-control mt-2" placeholder="請輸入內容..."></textarea>
+            </div>
+            <div class="col-md-6 p-3">
+                <label for="outputFormat" class="form-label">轉換後格式</label>
+                <select id="outputFormat" class="form-select">
+                    <option value="text">Text</option>
+                    <option value="bbcode">BBCode</option>
+                    <option value="html">HTML</option>
+                    <option value="markdown">Markdown</option>
+                </select>
+                <textarea id="outputText" class="form-control mt-2" readonly></textarea>
+                <button id="copyBtn" class="btn btn-primary mt-2">複製內容</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function convert() {
+            const inputFormat = document.getElementById('inputFormat').value;
+            const outputFormat = document.getElementById('outputFormat').value;
+            let inputText = document.getElementById('inputText').value;
+            let outputText = inputText;
+
+            if (inputFormat === 'markdown' && outputFormat === 'markdown') {
+                document.getElementById('outputText').value = inputText;
+                return;
+            }
+
+            if (inputFormat === 'bbcode') {
+                outputText = new BBCodeParser().toHTML(inputText);
+            } else if (inputFormat === 'markdown') {
+                outputText = new showdown.Converter().makeHtml(inputText);
+            }
+
+            if (outputFormat === 'bbcode') {
+                outputText = outputText.replace(/<strong>(.*?)<\/strong>/g, '[b]$1[/b]')
+                                       .replace(/<em>(.*?)<\/em>/g, '[i]$1[/i]')
+                                       .replace(/<u>(.*?)<\/u>/g, '[u]$1[/u]')
+                                       .replace(/<[^>]*>/g, '');
+            } else if (outputFormat === 'markdown') {
+                outputText = outputText.replace(/<strong>(.*?)<\/strong>/g, '**$1**')
+                                       .replace(/<em>(.*?)<\/em>/g, '*$1*')
+                                       .replace(/<u>(.*?)<\/u>/g, '__$1__')
+                                       .replace(/<[^>]*>/g, '');
+            } else if (outputFormat === 'text') {
+                outputText = outputText.replace(/<[^>]*>/g, '');
+            } else if (outputFormat === 'html') {
+                outputText = new showdown.Converter().makeHtml(inputText);
+            }
+
+            document.getElementById('outputText').value = outputText;
+        }
+
+        document.getElementById('inputText').addEventListener('input', convert);
+        document.getElementById('inputFormat').addEventListener('change', convert);
+        document.getElementById('outputFormat').addEventListener('change', convert);
+
+        document.getElementById('copyBtn').addEventListener('click', () => {
+            navigator.clipboard.writeText(document.getElementById('outputText').value)
+                .then(() => alert('內容已複製！'))
+                .catch(err => alert('複製失敗: ' + err));
+        });
+    </script>
+</body>
+</html>
