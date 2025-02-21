@@ -77,7 +77,8 @@
     <script>
         function getQueryParam(param) {
             const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get(param);
+            const value = urlParams.get(param);
+            return value ? decodeURIComponent(value) : null;
         }
         
         function copyToClipboard() {
@@ -103,12 +104,13 @@
             }
             
             if (qrValue) {
+                const encodedQRValue = decodeURIComponent(qrValue);
                 new QRCode(document.getElementById("qrcode"), {
-                    text: qrValue,
+                    text: encodedQRValue,
                     width: 200,
                     height: 200
                 });
-                document.getElementById("qr-text").innerText = qrValue;
+                document.getElementById("qr-text").innerText = encodedQRValue;
             } else {
                 document.getElementById("qrcode").innerHTML = "<p class='text-danger'>請提供 qrvalue 參數</p>";
             }
