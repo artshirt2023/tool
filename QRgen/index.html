@@ -77,8 +77,7 @@
     <script>
         function getQueryParam(param) {
             const urlParams = new URLSearchParams(window.location.search);
-            const value = urlParams.get(param);
-            return value ? decodeURIComponent(value) : null;
+            return urlParams.has(param) ? decodeURIComponent(urlParams.get(param)) : null;
         }
         
         function copyToClipboard() {
@@ -91,9 +90,11 @@
         }
         
         document.addEventListener("DOMContentLoaded", function() {
-            const qrValue = getQueryParam("qrvalue");
-            const nameValue = getQueryParam("name");
-            const descriptionValue = getQueryParam("description");
+            const urlParams = new URL(window.location.href);
+            const searchParams = new URLSearchParams(urlParams.search);
+            const qrValue = searchParams.get("qrvalue");
+            const nameValue = searchParams.get("name");
+            const descriptionValue = searchParams.get("description");
             
             document.getElementById("page-title").innerText = nameValue ? nameValue : "QR Code";
             
@@ -104,13 +105,13 @@
             }
             
             if (qrValue) {
-                const encodedQRValue = decodeURIComponent(qrValue);
+                const decodedQRValue = decodeURIComponent(qrValue);
                 new QRCode(document.getElementById("qrcode"), {
-                    text: encodedQRValue,
+                    text: decodedQRValue,
                     width: 200,
                     height: 200
                 });
-                document.getElementById("qr-text").innerText = encodedQRValue;
+                document.getElementById("qr-text").innerText = decodedQRValue;
             } else {
                 document.getElementById("qrcode").innerHTML = "<p class='text-danger'>請提供 qrvalue 參數</p>";
             }
