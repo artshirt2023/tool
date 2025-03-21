@@ -135,6 +135,29 @@
             min-width: 250px !important;  /* 最小寬度改為 250px */
             padding: 0 5px;  /* 增加左右內距，縮小至 5px */
         }
+
+        /* 自定義按鈕樣式 */
+        .btn-outline-secondary {
+            color: var(--bs-border-color); /* 按鈕文字顏色 */
+            background-color: transparent; /* 背景顏色 */
+            border-color: var(--bs-border-color); /* 邊框顏色 */
+        }
+
+        .btn-outline-secondary:hover {
+            color: #ffffff; /* 滑鼠懸停時文字顏色 */
+            background-color: var(--bs-border-color); /* 滑鼠懸停時背景顏色 */
+            border-color: var(--bs-border-color); /* 滑鼠懸停時邊框顏色 */
+        }
+
+        /* 確保搜尋框的邊框顏色一致 */
+        .form-control {
+            border-color: var(--bs-border-color); /* 搜尋框邊框顏色 */
+        }
+
+        .form-control:focus {
+            border-color: var(--bs-border-color); /* 搜尋框聚焦時邊框顏色 */
+            box-shadow: 0 0 0 0.2rem rgba(108, 117, 125, 0.25); /* 聚焦時的陰影 */
+        }
     </style>
 </head>
 <body class="bg-light">
@@ -144,11 +167,16 @@
             <div class="container">
                 <div class="row g-3">
                     <div class="col-6">
-                        <input type="text" 
-                               class="form-control" 
-                               id="searchInput" 
-                               placeholder="搜尋關鍵字..."
-                               oninput="clipboardManager.filterItems()">
+                        <div class="input-group">
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="searchInput" 
+                                   placeholder="搜尋關鍵字..."
+                                   oninput="clipboardManager.filterItems()">
+                            <button class="btn btn-outline-secondary" onclick="clearSearch()">
+                                <i class="bi bi-x-circle"></i> <!-- 清除按鈕圖示 -->
+                            </button>
+                        </div>
                     </div>
                     <div class="col-6">
                         <select class="form-select" 
@@ -331,6 +359,12 @@
                         </div>
                     `).join('');
             }
+        }
+
+        // 清除搜尋框內容的函數
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            clipboardManager.filterItems(); // 重新篩選
         }
 
         // 初始化應用程式
