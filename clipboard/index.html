@@ -132,7 +132,7 @@
         /* 設定容器最大寬度 */
         .container {
             width: 100%;  /* 設定為 100% */
-            min-width: 300px !important;  /* 最小寬度改為 300px */
+            min-width: 250px !important;  /* 最小寬度改為 250px */
             padding: 0 5px;  /* 增加左右內距，縮小至 5px */
         }
     </style>
@@ -291,12 +291,18 @@
                 // 先依類別分組
                 const groupedItems = this.items.reduce((groups, item) => {
                     // 過濾搜尋
-                    if (searchText && !item.content.toLowerCase().includes(searchText)) {
-                        return groups;
+                    const isMatch = 
+                        (item.category.toLowerCase().includes(searchText) || 
+                        item.content.toLowerCase().includes(searchText) || 
+                        (item.note && item.note.toLowerCase().includes(searchText)));
+
+                    if (searchText && !isMatch) {
+                        return groups; // 如果不符合搜尋條件，則跳過
                     }
+
                     // 過濾類別
                     if (selectedCategory && item.category !== selectedCategory) {
-                        return groups;
+                        return groups; // 如果選擇了類別且不符合，則跳過
                     }
 
                     if (!groups[item.category]) {
