@@ -2,8 +2,8 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>網頁剪貼簿</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.1">
+    <title>衣的藝術剪貼簿</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
@@ -44,7 +44,12 @@
             right: 20px;
             z-index: 1001;
             font-size: 0.9rem;
-            padding: 4px 12px;
+            padding: 4px;  /* 縮小按鈕內距 */
+            width: 32px;   /* 固定按鈕寬度 */
+            height: 32px;  /* 固定按鈕高度 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .update-time {
@@ -111,6 +116,7 @@
             z-index: 1000;
             font-size: 0.9rem;
             color: #6c757d;
+            line-height: 1.5;  /* 增加行距 */
         }
 
         /* 為了避免內容被固定元素遮住 */
@@ -121,6 +127,12 @@
 
         #clipboardList {
             padding-top: 0;  /* 移除原本的上方間距 */
+        }
+
+        /* 設定容器最大寬度 */
+        .container {
+            max-width: 400px !important;
+            min-width: 200px !important;
         }
     </style>
 </head>
@@ -163,9 +175,10 @@
 
     <!-- Copyright 和更新按鈕 -->
     <div class="copyright">
-        © 2024 網頁剪貼簿 All Rights Reserved.
+        © <span id="currentYear"></span> 衣的藝術 All Rights Reserved.<br>
+        使用問題請聯繫 資訊部-李沛勳
         <button class="btn btn-outline-secondary settings-button" onclick="clipboardManager.refreshData()">
-            <i class="bi bi-arrow-clockwise"></i> 更新
+            <i class="bi bi-arrow-clockwise"></i>
             <span id="lastUpdate" class="update-time"></span>
         </button>
     </div>
@@ -330,6 +343,11 @@
                     });
             });
         }
+    </script>
+
+    <script>
+        // 自動更新年份
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
     </script>
 </body>
 </html> 
