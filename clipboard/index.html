@@ -131,8 +131,9 @@
 
         /* 設定容器最大寬度 */
         .container {
-            max-width: 400px !important;
-            min-width: 200px !important;
+            width: 100%;  /* 設定為 100% */
+            min-width: 300px !important;  /* 最小寬度改為 300px */
+            padding: 0 5px;  /* 增加左右內距，縮小至 5px */
         }
     </style>
 </head>
@@ -328,6 +329,9 @@
 
         // 初始化應用程式
         const clipboardManager = new ClipboardManager();
+
+        // 自動更新年份
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
     </script>
 
     <!-- PWA Registration -->
@@ -343,11 +347,6 @@
                     });
             });
         }
-    </script>
-
-    <script>
-        // 自動更新年份
-        document.getElementById('currentYear').textContent = new Date().getFullYear();
     </script>
 </body>
 </html> 
