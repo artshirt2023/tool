@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>網頁剪貼簿</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#ffffff"/>
+    <meta name="description" content="網頁剪貼簿 - 快速複製常用文字"/>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    <style>
+        .clipboard-item {
+            background-color: #ffffff;  /* 統一使用白色背景 */
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .clipboard-item:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+
+        .clipboard-item.message,
+        .clipboard-item.fabric {
+            background-color: #ffffff;
+        }
+
+        .note {
+            font-size: 0.9em;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        .settings-button {
+            position: fixed;
+            bottom: 8px;
+            right: 20px;
+            z-index: 1001;
+            font-size: 0.9rem;
+            padding: 4px 12px;
+        }
+
+        .update-time {
+            display: none;
+            position: absolute;
+            top: -25px;
+            right: 0;
+            font-size: 0.75rem;
+            color: #6c757d;
+            white-space: nowrap;
+        }
+
+        .settings-button:hover .update-time {
+            display: block;
+        }
+
+        .category-title {
+            font-size: 1.2rem;
+            color: #495057;
+            margin: 1.5rem 0 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .search-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background-color: rgba(255, 255, 255, 0.95);
+            padding: 1rem;
+            z-index: 1000;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1100;
+        }
+
+        .copy-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .copy-badge.show {
+            opacity: 1;
+        }
+
+        .copyright {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            text-align: center;
+            border-top: 1px solid rgba(0,0,0,0.1);
+            z-index: 1000;
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+
+        /* 為了避免內容被固定元素遮住 */
+        body {
+            padding-top: 80px;  /* 為頂部搜尋欄留空間 */
+            padding-bottom: 50px;  /* 為底部 copyright 留空間 */
+        }
+
+        #clipboardList {
+            padding-top: 0;  /* 移除原本的上方間距 */
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container">
+        <!-- 搜尋和篩選區 -->
+        <div class="search-container">
+            <div class="container">
+                <div class="row g-3">
+                    <div class="col-6">
+                        <input type="text" 
+                               class="form-control" 
+                               id="searchInput" 
+                               placeholder="搜尋關鍵字..."
+                               oninput="clipboardManager.filterItems()">
+                    </div>
+                    <div class="col-6">
+                        <select class="form-select" 
+                                id="categoryFilter"
+                                onchange="clipboardManager.filterItems()">
+                            <option value="">所有類別</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 提示訊息 -->
+        <div class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true" id="updateToast">
+            <div class="d-flex">
+                <div class="toast-body">
+                    資料已更新完成！
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+
+        <div id="clipboardList" class="container"></div>
+    </div>
+
+    <!-- Copyright 和更新按鈕 -->
+    <div class="copyright">
+        © 2024 網頁剪貼簿 All Rights Reserved.
+        <button class="btn btn-outline-secondary settings-button" onclick="clipboardManager.refreshData()">
+            <i class="bi bi-arrow-clockwise"></i> 更新
+            <span id="lastUpdate" class="update-time"></span>
+        </button>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        class ClipboardManager {
+            constructor() {
+                this.items = [];
+                this.lastUpdate = null;
+                this.toast = new bootstrap.Toast(document.getElementById('updateToast'));
+                this.init();
+            }
+
+            async init() {
+                const currentDate = new Date().toISOString().split('T')[0];
+                const storedLastUpdate = localStorage.getItem('lastUpdate');
+                const storedItems = localStorage.getItem('clipboardItems');
+
+                if (!storedLastUpdate || storedLastUpdate !== currentDate) {
+                    // 如果是今天第一次開啟，就更新資料
+                    await this.fetchData();
+                } else if (storedItems) {
+                    // 否則使用本地儲存的資料
+                    this.items = JSON.parse(storedItems);
+                    this.lastUpdate = storedLastUpdate;
+                    this.render();
+                }
+            }
+
+            async refreshData() {
+                await this.fetchData();
+                this.toast.show();
+            }
+
+            formatDateTime(date) {
+                const pad = (n) => n.toString().padStart(2, '0');
+                return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ` +
+                       `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+            }
+
+            updateCategoryFilter() {
+                const categories = [...new Set(this.items.map(item => item.category))];
+                const select = document.getElementById('categoryFilter');
+                select.innerHTML = '<option value="">所有類別</option>' +
+                    categories.map(category => 
+                        `<option value="${category}">${category}</option>`
+                    ).join('');
+            }
+
+            filterItems() {
+                const searchText = document.getElementById('searchInput').value.toLowerCase();
+                const selectedCategory = document.getElementById('categoryFilter').value;
+                
+                this.render(searchText, selectedCategory);
+            }
+
+            async fetchData() {
+                try {
+                    const response = await fetch('https://ap11.ragic.com/artshirt2023/forms13/35/0?api');
+                    const data = await response.json();
+                    
+                    const subtableData = data[0]._subtable_1003876;
+                    this.items = Object.values(subtableData).map(item => ({
+                        id: item._ragicId,
+                        order: parseInt(item.順序),
+                        category: item.類別,
+                        content: item.內容,
+                        note: item.備註
+                    }));
+                    
+                    const currentDateTime = this.formatDateTime(new Date());
+                    localStorage.setItem('clipboardItems', JSON.stringify(this.items));
+                    localStorage.setItem('lastUpdate', currentDateTime);
+                    this.lastUpdate = currentDateTime;
+                    
+                    this.updateCategoryFilter();
+                    this.render();
+                } catch (error) {
+                    console.error('Error fetching data:', error);
+                }
+            }
+
+            async copyToClipboard(content, element) {
+                try {
+                    await navigator.clipboard.writeText(content);
+                    
+                    // 顯示複製成功的標記
+                    const badge = element.querySelector('.copy-badge');
+                    badge.classList.add('show');
+                    
+                    // 1.5秒後隱藏標記
+                    setTimeout(() => {
+                        badge.classList.remove('show');
+                    }, 1500);
+                } catch (err) {
+                    console.error('複製失敗:', err);
+                }
+            }
+
+            render(searchText = '', selectedCategory = '') {
+                const lastUpdateElement = document.getElementById('lastUpdate');
+                if (this.lastUpdate) {
+                    lastUpdateElement.textContent = `最後更新：${this.lastUpdate}`;
+                }
+
+                // 先依類別分組
+                const groupedItems = this.items.reduce((groups, item) => {
+                    // 過濾搜尋
+                    if (searchText && !item.content.toLowerCase().includes(searchText)) {
+                        return groups;
+                    }
+                    // 過濾類別
+                    if (selectedCategory && item.category !== selectedCategory) {
+                        return groups;
+                    }
+
+                    if (!groups[item.category]) {
+                        groups[item.category] = [];
+                    }
+                    groups[item.category].push(item);
+                    return groups;
+                }, {});
+
+                // 渲染分組後的內容
+                const clipboardList = document.getElementById('clipboardList');
+                clipboardList.innerHTML = Object.entries(groupedItems)
+                    .map(([category, items]) => `
+                        <div class="category-group">
+                            <h2 class="category-title">${category}</h2>
+                            ${items
+                                .sort((a, b) => a.order - b.order)
+                                .map(item => `
+                                    <div class="clipboard-item p-3 mb-3 position-relative"
+                                         onclick="clipboardManager.copyToClipboard('${item.content.replace(/'/g, "\\'")}', this)">
+                                        <div class="content mb-2">${item.content}</div>
+                                        ${item.note ? `<div class="note">${item.note}</div>` : ''}
+                                        <span class="copy-badge badge bg-success">已複製！</span>
+                                    </div>
+                                `).join('')}
+                        </div>
+                    `).join('');
+            }
+        }
+
+        // 初始化應用程式
+        const clipboardManager = new ClipboardManager();
+    </script>
+
+    <!-- PWA Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')  // 使用相對路徑
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful');
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+    </script>
+</body>
+</html> 
